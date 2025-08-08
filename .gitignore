@@ -1,0 +1,29 @@
+cd /path/to/your/repo
+# Grab GitHub’s Python template
+curl -L https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore -o .gitignore
+# Append project-specific stuff
+cat >> .gitignore <<'EOF'
+
+# macOS & editors
+.DS_Store
+.vscode/
+.idea/
+
+# Local env
+.venv/
+.env
+
+# Generated media (don’t commit clips)
+clips/
+*.mp4
+*.webm
+*.mkv
+*.part
+*.info.json
+*.vtt
+*.srt
+EOF
+
+git add .gitignore
+git commit -m "chore: add Python .gitignore + project ignores"
+git push
