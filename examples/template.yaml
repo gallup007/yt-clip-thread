@@ -1,0 +1,7 @@
+url: "https://www.youtube.com/watch?v=XXXX"
+output_dir: "clips"
+segments:
+  - tweet: 1
+    label: "short-slug"
+    start: "00:01:23"
+    end:   "00:02:10"
