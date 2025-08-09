@@ -1,9 +1,17 @@
-#!/usr/bin/env bash
 set -euo pipefail
 python --version
 ffmpeg -version | head -n1
-yt-dlp --version
+python -m yt_dlp --version || true
+cat > scripts/ci-selftest.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
 
+# show versions (module form avoids PATH issues)
+python --version
+ffmpeg -version | head -n1
+python -m yt_dlp --version || true
+
+# make a small local source (no network)
 rm -rf ci-clips ci-source.mp4 ci.yaml
 ffmpeg -y -f lavfi -i color=size=640x360:rate=30:color=black \
        -f lavfi -i sine=frequency=1000:sample_rate=44100 \
@@ -25,6 +33,7 @@ segments:
 YML
 
 python clipper.py --input ci-source.mp4 --fast -c ci.yaml
+
 test -f ci-clips/01_first_00-00-02_00-00-05.mp4
 test -f ci-clips/02_second_00-00-06_00-00-10.mp4
 echo "Self-test passed."
