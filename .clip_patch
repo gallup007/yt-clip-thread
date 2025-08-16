@@ -1,0 +1,38 @@
+*** a/clipper.py
+--- b/clipper.py
+***************
+*** 32,44 ****
+  def main():
+      ap = argparse.ArgumentParser(description="Clip tweet-length segments from one YouTube video.")
+      ap.add_argument("-c","--config", default="segments.yaml")
+      ap.add_argument("--input", help="Path to pre-downloaded video (skip yt-dlp)")
+      ap.add_argument("--fast", action="store_true", help="Use stream copy (faster, keyframe-bound)")
+      args = ap.parse_args()
+  
+-     with open(args.config) as f: cfg = yaml.safe_load(f)
+-     url = cfg["url"]; outdir = pathlib.Path(cfg.get("output_dir","clips")); segments = cfg["segments"]
++     # Optional one-liner mode (no YAML): --url + --ranges "MM:SS-MM:SS;..."
++     ap2 = argparse.ArgumentParser(add_help=False)
++     ap2.add_argument("--url")
++     ap2.add_argument("--ranges", help='Semicolon-separated: "00:01-00:10;00:45-01:20"')
++     known, _ = ap2.parse_known_args()
++ 
++     if known.url and known.ranges:
++         pieces = [r.strip() for r in known.ranges.split(";") if r.strip()]
++         segments = []
++         for i, r in enumerate(pieces, 1):
++             if "-" not in r: raise SystemExit(f"Bad range: {r}")
++             s, e = r.split("-", 1)
++             segments.append({"tweet": i, "label": f"clip-{i}", "start": to_hms(s), "end": to_hms(e)})
++         cfg = {"url": known.url, "output_dir": "clips", "segments": segments}
++     else:
++         with open(args.config) as f:
++             cfg = yaml.safe_load(f)
++ 
++     url = cfg["url"]; outdir = pathlib.Path(cfg.get("output_dir","clips")); segments = cfg["segments"]
+      input_path = pathlib.Path(args.input) if args.input else ensure_video(url, outdir)
+  
+      for seg in segments:
+          t = int(seg["tweet"]); label = slug(seg.get("label", f"clip-{t}"))
+          start, end = seg["start"], seg["end"]
+*** End Patch

@@ -29,22 +29,39 @@ jobs:
 
       - name: Install ffmpeg and tool
         run: |
+          set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install .   # installs ytclip from your repo (pyproject.toml)
+          pip install .
+          python -m yt_dlp --version || true
 
-      - name: Run ytclip
+      # Optional: use cookies if provided as a repo secret (YT_COOKIES)
+      - name: (Optional) write cookies & set yt-dlp flags
         env:
-          URL:       ${{ github.event.inputs.url }}
-          RANGES:    ${{ github.event.inputs.ranges }}
-          OUTDIR:    ${{ github.event.inputs.output_dir }}
-          FAST_FLAG: ${{ github.event.inputs.fast }}
+          COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          set -euxo pipefail
+          # make yt-dlp resilient on CI
+          echo 'YT_DLP_OPTS=--retries infinite --fragment-retries infinite --concurrent-fragments 1' >> "$GITHUB_ENV"
+          # if a cookies secret exists, write it and expose its path
+          if [ -n "${COOKIES:-}" ]; then
+            printf '%s' "$COOKIES" > cookies.txt
+            echo "YT_DLP_COOKIES=$PWD/cookies.txt" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run clipper
+        env:
+          URL:    ${{ github.event.inputs.url }}
+          RANGES: ${{ github.event.inputs.ranges }}
+          OUTDIR: ${{ github.event.inputs.output_dir }}
+          FAST:   ${{ github.event.inputs.fast }}
         run: |
           set -euxo pipefail
           ARGS=( --url "$URL" --ranges "$RANGES" --output-dir "$OUTDIR" )
-          if [ "${FAST_FLAG:-true}" = "true" ]; then ARGS+=( --fast ); fi
-          ytclip "${ARGS[@]}"
+          if [ "${FAST:-true}" = "true" ]; then ARGS+=( --fast ); fi
+          # call via module to avoid PATH issues
+          python -m clipper "${ARGS[@]}"
 
       - name: Zip outputs
         run: zip -r clips.zip "${{ github.event.inputs.output_dir }}"

@@ -1,0 +1,11 @@
+url: "https://example.com/not-used-with-input"
+output_dir: "ci-clips"
+segments:
+  - tweet: 1
+    label: "first"
+    start: "00:00:02"
+    end:   "00:00:05"
+  - tweet: 2
+    label: "second"
+    start: "00:00:06"
+    end:   "00:00:10"
