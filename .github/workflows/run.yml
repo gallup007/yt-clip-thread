@@ -1,0 +1,56 @@
+name: Run clipping
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "YouTube URL"
+        required: true
+      ranges:
+        description: 'Semicolon ranges, e.g. "01:10-02:00;05:00-05:45"'
+        required: true
+      output_dir:
+        description: "Output directory"
+        required: false
+        default: "clips/run"
+      fast:
+        description: "Use fast (keyframe) cuts"
+        required: false
+        default: "true"
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ffmpeg and tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          pip install .   # installs ytclip from your repo (pyproject.toml)
+
+      - name: Run ytclip
+        env:
+          URL:       ${{ github.event.inputs.url }}
+          RANGES:    ${{ github.event.inputs.ranges }}
+          OUTDIR:    ${{ github.event.inputs.output_dir }}
+          FAST_FLAG: ${{ github.event.inputs.fast }}
+        run: |
+          set -euxo pipefail
+          ARGS=( --url "$URL" --ranges "$RANGES" --output-dir "$OUTDIR" )
+          if [ "${FAST_FLAG:-true}" = "true" ]; then ARGS+=( --fast ); fi
+          ytclip "${ARGS[@]}"
+
+      - name: Zip outputs
+        run: zip -r clips.zip "${{ github.event.inputs.output_dir }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clips
+          path: clips.zip
